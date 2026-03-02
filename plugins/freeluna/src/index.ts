@@ -46,6 +46,17 @@ export const usage = `
 export const Config = ConfigSchema
 
 export function apply(ctx: Context, config: ConfigType) {
+
+  loadProviderIndex(ctx, config).then(index => {
+    const modelNames = index?.providers.map(p => `freeluna-${p.name}`) ?? []
+    if (modelNames.length > 0) {
+      ctx.schema.set('freeluna.testmodels', Schema.union(modelNames))
+    }
+  }).catch(() => {
+    // 如果加载失败，设置一个默认的空选项
+    ctx.schema.set('freeluna.testmodels', Schema.union(['加载中...', '加载中']))
+  })
+
   ctx.on('ready', async () => {
 
     initLogger(ctx, config)
@@ -56,13 +67,6 @@ export function apply(ctx: Context, config: ConfigType) {
     const providers = await loadAllProviders(ctx, config)
     if (providers.length === 0) {
       loggerInfo('警告：未能加载任何提供商，请检查配置后重启插件')
-    }
-
-    // 更新动态 Schema：模型列表
-    const index = await loadProviderIndex(ctx, config)
-    const modelNames = index?.providers.map(p => `freeluna-${p.name}`) ?? []
-    if (modelNames.length > 0) {
-      ctx.schema.set('freeluna.testmodels', Schema.union(modelNames))
     }
 
     // 注册测试指令
