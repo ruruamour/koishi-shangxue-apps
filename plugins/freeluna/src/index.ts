@@ -46,7 +46,10 @@ export const usage = `
 export const Config = ConfigSchema
 
 export function apply(ctx: Context, config: ConfigType) {
+  // 先初始化 logger，确保后续调用不会出错
+  initLogger(ctx, config)
 
+  // 立即更新动态 Schema，不等待 ready 事件
   loadProviderIndex(ctx, config).then(index => {
     const modelNames = index?.providers.map(p => `freeluna-${p.name}`) ?? []
     if (modelNames.length > 0) {
@@ -58,8 +61,6 @@ export function apply(ctx: Context, config: ConfigType) {
   })
 
   ctx.on('ready', async () => {
-
-    initLogger(ctx, config)
     registerModelRoutes(ctx, config)
     registerChatRoute(ctx, config)
 
