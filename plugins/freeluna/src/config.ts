@@ -29,7 +29,7 @@ export const ConfigSchema: Schema<Config> = Schema.intersect([
       testCommand: Schema.string().default("freeluna.test")
         .description('测试指令名称'),
       testModel: Schema.dynamic('freeluna.testmodels')
-        .description('测试使用的模型'),
+        .description('测试使用的模型（需要等待加载一会才显示）'),
     }),
     Schema.object({
       testEnabled: Schema.const(false)
