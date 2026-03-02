@@ -1,4 +1,5 @@
-import { Context } from 'koishi'
+import { Context, Schema } from 'koishi'
+import { watch } from '@vue/reactivity'
 
 import type { } from '@koishijs/plugin-server'
 import type { } from '@koishijs/plugin-notifier'
@@ -6,7 +7,7 @@ import type { } from '@koishijs/plugin-notifier'
 import type { Config as ConfigType } from './types'
 import { ConfigSchema } from './config'
 import { initLogger, loggerInfo } from './logger'
-import { clearConfigCache, loadAllProviders } from './remoteConfig'
+import { clearConfigCache, loadAllProviders, loadProviderIndex, findProvider } from './remoteConfig'
 import { registerModelRoutes } from './routes/models'
 import { registerChatRoute } from './routes/chat'
 
@@ -56,7 +57,54 @@ export function apply(ctx: Context, config: ConfigType) {
     if (providers.length === 0) {
       loggerInfo('警告：未能加载任何提供商，请检查配置后重启插件')
     }
+
+    // 更新动态 Schema：模型列表
+    const index = await loadProviderIndex(ctx, config)
+    const modelNames = index?.providers.map(p => `freeluna-${p.name}`) ?? []
+    if (modelNames.length > 0) {
+      ctx.schema.set('freeluna.testmodels', Schema.union(modelNames))
+    }
+
+    // 注册测试指令
+    if (config.testEnabled && config.testCommand) {
+      ctx.command(`${config.testCommand} [...input:text]`, '测试 FreeLuna 模型')
+        .action(async ({ session }, ...args) => {
+          if (!config.testModel) {
+            return '未配置测试模型'
+          }
+
+          const userInput = args.join(' ')
+          if (!userInput) {
+            return '请输入要测试的内容'
+          }
+
+          try {
+            // 获取提供商名称
+            const providerName = config.testModel.startsWith('freeluna-')
+              ? config.testModel.slice('freeluna-'.length)
+              : config.testModel
+
+            // 查找提供商
+            const provider = await findProvider(ctx, providerName, config)
+            if (!provider) {
+              return `未找到提供商: ${providerName}`
+            }
+
+            // 调用 API
+            const messages = [{ role: 'user' as const, content: userInput }]
+            const response = await provider.module.chat(messages, {
+              model: config.testModel,
+            })
+
+            return response
+          } catch (err) {
+            loggerInfo(`测试指令执行失败: ${err instanceof Error ? err.message : err}`)
+            return `请求失败: ${err instanceof Error ? err.message : String(err)}`
+          }
+        })
+    }
   })
+
   ctx.on('dispose', () => {
     clearConfigCache()
   })

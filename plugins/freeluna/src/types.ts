@@ -6,6 +6,9 @@ export interface Config {
   basePath: string
   remoteIndexUrl: string
   apiKeys: ApiKeyEntry[]
+  testEnabled: boolean
+  testCommand?: string
+  testModel?: string
   localDebug: boolean
   loggerInfo: boolean
   loggerDebug: boolean

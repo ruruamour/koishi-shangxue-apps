@@ -16,9 +16,13 @@ let indexCache: ProviderIndex | null = null
 
 const moduleCache = new Map<string, ProviderModule>()
 
+// 标记是否已经显示过通知，避免重复显示
+let hasNotified = false
+
 export function clearConfigCache() {
   indexCache = null
   moduleCache.clear()
+  hasNotified = false // 清除缓存时重置通知标记
   logInfo('所有缓存已清除')
 }
 
@@ -52,8 +56,12 @@ export async function loadProviderIndex(ctx: Context, config: Config): Promise<P
     const parsed = JSON.parse(text) as ProviderIndex
     const providerCount = parsed.providers?.length ?? 0
 
-    const notifier = ctx.notifier.create()
-    notifier.update(`FreeLuna 注册表加载成功，共 ${providerCount} 个提供商`)
+    // 只在第一次加载时显示通知，避免重复
+    if (!hasNotified) {
+      const notifier = ctx.notifier.create()
+      notifier.update(`FreeLuna 注册表加载成功，共 ${providerCount} 个提供商`)
+      hasNotified = true
+    }
 
     indexCache = parsed
     return parsed

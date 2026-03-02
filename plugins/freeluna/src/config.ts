@@ -21,6 +21,22 @@ export const ConfigSchema: Schema<Config> = Schema.intersect([
   }).description('基础设置'),
 
   Schema.object({
+    testEnabled: Schema.boolean().default(false).description('是否注册测试指令'),
+  }).description('测试指令设置'),
+  Schema.union([
+    Schema.object({
+      testEnabled: Schema.const(true).required(),
+      testCommand: Schema.string().default("freeluna.test")
+        .description('测试指令名称'),
+      testModel: Schema.dynamic('freeluna.testmodels')
+        .description('测试使用的模型'),
+    }),
+    Schema.object({
+      testEnabled: Schema.const(false)
+    }),
+  ]),
+
+  Schema.object({
     localDebug: Schema.boolean().experimental()
       .default(false)
       .description('本地调试模式：启用后从本地 public/ 目录加载提供商配置和 JS，而非远程 URL'),
