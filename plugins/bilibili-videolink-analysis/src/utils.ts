@@ -371,11 +371,12 @@ export class BilibiliParser {
                             }
                         } else {
                             // 视频时长在允许范围内，处理视频
-                            let videoData = video.url;
+                            let videoData: string = video.url; // 初始为原始 URL
+                            let fileTooLarge = false; // 标记文件是否过大
 
                             if (this.config.filebuffer) {
                                 try {
-                                    // 使用 Node.js 原生 fetch 下载视频
+                                    // 使用 Node.js 原生 fetch 下载视频（仅获取 header 检查大小）
                                     const response = await fetch(video.url, {
                                         headers: {
                                             'User-Agent': this.config.userAgent,
@@ -397,9 +398,9 @@ export class BilibiliParser {
                                     this.logInfo(`[下载] 配置的最大大小: ${maxSize}MB`);
 
                                     if (maxSize > 0 && fileSizeMB > maxSize) {
-                                        this.logger.warn(`[下载] 文件过大 (${fileSizeMB.toFixed(2)}MB > ${maxSize}MB)，跳过发送`);
-                                        // 文件过大，直接返回，不发送视频
-                                        return;
+                                        this.logger.warn(`[下载] 文件过大 (${fileSizeMB.toFixed(2)}MB > ${maxSize}MB)，跳过视频下载`);
+                                        // 标记文件过大，后续不加入视频元素
+                                        fileTooLarge = true;
                                     } else {
                                         this.logInfo(`[下载] 开始下载并转换为Base64...`);
 
@@ -424,7 +425,27 @@ export class BilibiliParser {
                                 }
                             }
 
-                            if (videoData) {
+                            if (fileTooLarge) {
+                                // 文件过大：不发送视频，仅保留图文（textElements 已准备好）
+                                // 根据 Maximumduration_tip 的逻辑决定是否追加提示语
+                                if (typeof this.config.Maximumduration_tip === 'object' && this.config.Maximumduration_tip !== null) {
+                                    if (this.config.Maximumduration_tip.tipcontent) {
+                                        if (this.config.Maximumduration_tip.tipanalysis) {
+                                            // 提示语合并到消息中
+                                            videoElements.push(h.text(this.config.Maximumduration_tip.tipcontent));
+                                        } else {
+                                            // 单独发送提示语
+                                            await session.send(this.config.Maximumduration_tip.tipcontent);
+                                        }
+                                    }
+                                    // 根据 tipanalysis 决定是否保留图文
+                                    if (!this.config.Maximumduration_tip.tipanalysis) {
+                                        textElements = [];
+                                    }
+                                }
+                                // 如果 Maximumduration_tip 为 null，则默认保留图文，不追加提示语
+                            } else if (videoData) {
+                                // 文件大小正常，正常发送视频/链接
                                 if (options.link) {
                                     // 如果是链接选项，仍然使用原始URL
                                     videoElements.push(h.text(video.url));
