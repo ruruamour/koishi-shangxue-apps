@@ -5,7 +5,9 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
-    "lib"
+    "lib",
+    "qq",
+    "src"
   ],
   "license": "MIT",
   "homepage": "https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/",
