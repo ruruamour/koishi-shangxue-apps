@@ -1,6 +1,6 @@
 import { clone, Context, h, Logger, Schema, sleep, Universal } from 'koishi'
 import { } from '@koishijs/assets';
-import {  } from 'koishi-plugin-puppeteer'
+import { } from 'koishi-plugin-puppeteer'
 
 export const name = 'testplugin'
 export const inject = {
@@ -10,13 +10,20 @@ export const inject = {
 const logger = new Logger(name);
 export interface Config { }
 
-export const Config: Schema<Config> = Schema.object({
-  value2: Schema.union([
-    Schema.const('foo').description('选项 1'),
-    Schema.const('bar').description('选项 2'),
-    Schema.const('baz').description('选项 3'),
-  ]).role('radio'),
-})
+export const Config: Schema<Config> =
+  Schema.intersect([
+    Schema.object({
+      value1: Schema.union([]).description('在这里添加说明'),
+      value2: Schema.union([
+        Schema.const('foo'),
+        Schema.const('bar').description('选项 2'),
+        Schema.const('baz').description('选项 3'),
+      ]).role('radio'),
+    }).description('分组 1'),
+    Schema.object({
+    }).description('分组 2'),
+  ])
+
 
 export function apply(ctx: Context) {
   // write your plugin here
@@ -24,17 +31,29 @@ export function apply(ctx: Context) {
 
   const command = ctx.command(commandName)
 
-  ctx.on('interaction/button', async (session) => {
-    ctx.logger.info(session)
-  })
+  // ctx.platform("pbhh").on('message', async (session) => {
+  //   ctx.logger.info(session)
+  // })
 
-ctx.command('test-timeout', '测试页面渲染超时')
-  .action(async ({ session }) => {
-    await session.send('开始测试，页面将在1分钟后渲染完成...')
+  // ctx.platform("pbhh").on('guild-member-added', async (session) => {
+  //   ctx.logger.info('added', session)
+  // })
 
-    const page = await ctx.puppeteer.page()
-    try {
-      const html = `
+  command
+    .subcommand('.历史记录')
+    .action(async ({ session }, id) => {
+      const aaa = await session.bot.internal.getFriendMsgHistory(session.userId)
+      ctx.logger.info(aaa)
+      return
+    })
+
+  ctx.command('test-timeout', '测试页面渲染超时')
+    .action(async ({ session }) => {
+      await session.send('开始测试，页面将在1分钟后渲染完成...')
+
+      const page = await ctx.puppeteer.page()
+      try {
+        const html = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -48,25 +67,25 @@ ctx.command('test-timeout', '测试页面渲染超时')
         </html>
       `
 
-      await page.setContent(html)
+        await page.setContent(html)
 
-      // 使用 waitForFunction 等待1分钟
-      await page.waitForFunction(() => {
-        return new Promise(resolve => {
-          setTimeout(() => resolve(true), 60000)
+        // 使用 waitForFunction 等待1分钟
+        await page.waitForFunction(() => {
+          return new Promise(resolve => {
+            setTimeout(() => resolve(true), 60000)
+          })
         })
-      })
 
-      const screenshot = await page.screenshot()
-      await session.send(h.image(screenshot, 'image/png'))
-      return '✅ 测试完成'
-    } catch (error) {
-      ctx.logger.info(error)
-      return `❌ 测试失败: ${error.message}`
-    } finally {
-      await page.close()
-    }
-  })
+        const screenshot = await page.screenshot()
+        await session.send(h.image(screenshot, 'image/png'))
+        return '✅ 测试完成'
+      } catch (error) {
+        ctx.logger.info(error)
+        return `❌ 测试失败: ${error.message}`
+      } finally {
+        await page.close()
+      }
+    })
 
 
 
