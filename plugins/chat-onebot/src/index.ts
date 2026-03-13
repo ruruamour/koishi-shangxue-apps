@@ -100,7 +100,20 @@ export const Config: Schema<Config> = Schema.intersect([
   }).description('调试设置'),
 ]) as Schema<Config>
 
+const activeInstances = new Map<string, { mode: 'online' | 'local', basePath: string }>()
+let entryRegistered = false
+
 export function apply(ctx: Context, config: Config) {
+  if (config.enableWebUI) {
+    activeInstances.set(config.basePath, { mode: config.mode ?? 'local', basePath: config.basePath })
+  }
+  ctx.on('dispose', () => {
+    activeInstances.delete(config.basePath)
+    try {
+      ;(ctx.console as any).broadcast('chat-onebot/instances', Array.from(activeInstances.values()))
+    } catch {}
+  })
+
   const logger = ctx.logger('chat-onebot')
 
   function logInfo(...args: any[]) {
@@ -122,11 +135,18 @@ export function apply(ctx: Context, config: Config) {
       accessToken: config.accessToken,
     }, (msg) => logInfo(msg))
 
-    ctx.console.addListener('chat-onebot/get-config' as any, async () => {
-      return {
-        mode: config.mode
-      }
-    })
+    ctx.console.addListener('chat-onebot/get-instances' as any, async () =>
+      Array.from(activeInstances.values())
+    )
+
+    if (config.enableWebUI && !entryRegistered) {
+      entryRegistered = true
+      ctx.on('dispose', () => { entryRegistered = false })
+      ctx.console.addEntry({
+        dev: path.resolve(__dirname, '../client/index.ts'),
+        prod: path.resolve(__dirname, '../dist'),
+      })
+    }
 
     const localPath = path.resolve(__dirname, '..', 'Stapxs-QQ-Lite/dist')
     if (existsSync(localPath)) {
@@ -190,10 +210,9 @@ export function apply(ctx: Context, config: Config) {
     }
 
     if (config.enableWebUI) {
-      ctx.console.addEntry({
-        dev: path.resolve(__dirname, '../client/index.ts'),
-        prod: path.resolve(__dirname, '../dist'),
-      })
+      try {
+        ;(ctx.console as any).broadcast('chat-onebot/instances', Array.from(activeInstances.values()))
+      } catch {}
     }
   })
 }
