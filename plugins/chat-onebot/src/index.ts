@@ -3,6 +3,7 @@ import { Console } from '@koishijs/console'
 import { } from '@koishijs/plugin-server'
 import path from 'node:path'
 import { existsSync } from 'node:fs'
+import { setupWsBridge } from './ws-bridge'
 
 export const name = 'chat-onebot'
 export const reusable = false
@@ -41,6 +42,10 @@ declare module 'koishi' {
 }
 export interface Config {
   mode: 'online' | 'local'
+  wsMode: 'none' | 'forward' | 'reverse'
+  protocolEndpoint?: string
+  proxyPath?: string
+  reversePath?: string
   loggerinfo: boolean
 }
 
@@ -53,19 +58,50 @@ export const Config: Schema<Config> = Schema.intersect([
   }).description('基础配置'),
 
   Schema.object({
+    wsMode: Schema.union([
+      Schema.const('none').description('不进行任何转换'),
+      Schema.const('forward').description('把正向转为反向'),
+      Schema.const('reverse').description('把反向转为正向'),
+    ]).default('none').description('WS桥接模式'),
+  }).description('基础配置'),
+  Schema.union([
+    Schema.object({
+      wsMode: Schema.const('none' as const).description('不进行任何转换'),
+    }),
+    Schema.object({
+      wsMode: Schema.const('forward' as const).required().description('把正向转为反向（我们主动连接协议端，WebQQ 连接我们）'),
+      protocolEndpoint: Schema.string().required().description('协议端 WebSocket 地址（如 ws://127.0.0.1:3080）'),
+      proxyPath: Schema.string().default('/chat-onebot/ws-proxy').description('WebQQ 连接我们的代理路径'),
+    }).description('WS桥接：正向转反向'),
+    Schema.object({
+      wsMode: Schema.const('reverse' as const).required().description('把反向转为正向（协议端连接我们，WebQQ 也连接我们）'),
+      reversePath: Schema.string().default('/chat-onebot/ws-incoming').description('协议端反向 WS 连接我们的路径<br>请填入到协议端的 WS 地址中'),
+      proxyPath: Schema.string().default('/chat-onebot/ws-proxy').description('WebQQ 连接我们的代理路径<br>[请填入到这个页面](/chat-onebot)'),
+    }).description('WS桥接：反向转正向'),
+  ]).description('WS 桥接设置'),
+
+  Schema.object({
     loggerinfo: Schema.boolean().default(false).description('日志调试模式').experimental(),
   }).description('调试设置'),
-])
+]) as Schema<Config>
 
 export function apply(ctx: Context, config: Config) {
-  ctx.on("ready", async () => {
-    const logger = ctx.logger('chat-onebot')
+  const logger = ctx.logger('chat-onebot')
 
-    function logInfo(...args: any[]) {
-      if (config.loggerinfo) {
-        (logger.info as (...args: any[]) => void)(...args)
-      }
+  function logInfo(...args: any[]) {
+    if (config.loggerinfo) {
+      (logger.info as (...args: any[]) => void)(...args)
     }
+  }
+
+  ctx.on("ready", async () => {
+
+    setupWsBridge(ctx, {
+      wsMode: config.wsMode,
+      protocolEndpoint: config.protocolEndpoint,
+      proxyPath: config.proxyPath,
+      reversePath: config.reversePath,
+    }, (msg) => logInfo(msg))
 
     // 注册 API：返回配置信息
     ctx.console.addListener('chat-onebot/get-config' as any, async () => {
