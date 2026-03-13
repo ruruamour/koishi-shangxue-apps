@@ -1,5 +1,5 @@
 import { Context, Schema } from 'koishi'
-import { } from '@koishijs/plugin-console'
+import { Console } from '@koishijs/console'
 import { } from '@koishijs/plugin-server'
 import path from 'node:path'
 import { existsSync } from 'node:fs'
@@ -17,7 +17,7 @@ export const usage = `
 
 集成 Stapxs QQ Lite 2.0 到 Koishi 控制台。
 
-- 一个兼容 OneBot 的非官方网页 QQ 客户端 
+- 一个兼容 OneBot 的非官方网页 QQ 客户端
 
 ### 加载模式说明
 
@@ -33,7 +33,12 @@ export const usage = `
 ---
 
 `
-
+import { } from '@koishijs/plugin-console'
+declare module 'koishi' {
+  interface Context {
+    console: Console
+  }
+}
 export interface Config {
   mode: 'online' | 'local'
   loggerinfo: boolean
