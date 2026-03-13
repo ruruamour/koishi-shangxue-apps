@@ -23,7 +23,7 @@ export const usage = `
 ### 加载模式说明
 
 1. **在线模式**：直接使用 GitHub Pages 托管的版本
-2. **本地模式**：使用集成的  Stapxs.QQ.Lite-3.3.3-web 挂载到koishi路由
+2. **本地模式**：使用集成的  Stapxs.QQ.Lite-3.3.5-web 挂载到koishi路由
 
 - 默认使用本地模式，以防止遇到网络问题。
 
@@ -41,6 +41,7 @@ declare module 'koishi' {
   }
 }
 export interface Config {
+  enableWebUI: boolean
   mode: 'online' | 'local'
   wsMode: 'none' | 'forward' | 'reverse'
   protocolEndpoint?: string
@@ -51,11 +52,21 @@ export interface Config {
 
 export const Config: Schema<Config> = Schema.intersect([
   Schema.object({
-    mode: Schema.union([
-      Schema.const('online').description('在线模式 (GitHub Pages)'),
-      Schema.const('local').description('本地文件模式')
-    ]).default('local').description('加载模式'),
+    enableWebUI: Schema.boolean().default(true).description('Web UI 入口开关'),
+
   }).description('基础配置'),
+  Schema.union([
+    Schema.object({
+      enableWebUI: Schema.const(true),
+      mode: Schema.union([
+        Schema.const('online').description('在线模式 (GitHub Pages)'),
+        Schema.const('local').description('本地文件模式')
+      ]).default('local').description('加载模式'),
+    }),
+    Schema.object({
+      enableWebUI: Schema.const(false).required(),
+    }),
+  ]),
 
   Schema.object({
     wsMode: Schema.union([
@@ -63,22 +74,22 @@ export const Config: Schema<Config> = Schema.intersect([
       Schema.const('forward').description('把正向转为反向'),
       Schema.const('reverse').description('把反向转为正向'),
     ]).default('none').description('WS桥接模式'),
-  }).description('基础配置'),
+  }).description('websocket转换配置'),
   Schema.union([
     Schema.object({
       wsMode: Schema.const('none' as const).description('不进行任何转换'),
     }),
     Schema.object({
       wsMode: Schema.const('forward' as const).required().description('把正向转为反向（我们主动连接协议端，WebQQ 连接我们）'),
-      protocolEndpoint: Schema.string().required().description('协议端 WebSocket 地址（如 ws://127.0.0.1:3080）'),
+      protocolEndpoint: Schema.string().required().description('协议端 WebSocket 地址（如 ws://127.0.0.1:3001）'),
       proxyPath: Schema.string().default('/chat-onebot/ws-proxy').description('WebQQ 连接我们的代理路径'),
-    }).description('WS桥接：正向转反向'),
+    }),
     Schema.object({
       wsMode: Schema.const('reverse' as const).required().description('把反向转为正向（协议端连接我们，WebQQ 也连接我们）'),
       reversePath: Schema.string().default('/chat-onebot/ws-incoming').description('协议端反向 WS 连接我们的路径<br>请填入到协议端的 WS 地址中'),
       proxyPath: Schema.string().default('/chat-onebot/ws-proxy').description('WebQQ 连接我们的代理路径<br>[请填入到这个页面](/chat-onebot)'),
-    }).description('WS桥接：反向转正向'),
-  ]).description('WS 桥接设置'),
+    }),
+  ]),
 
   Schema.object({
     loggerinfo: Schema.boolean().default(false).description('日志调试模式').experimental(),
@@ -103,40 +114,33 @@ export function apply(ctx: Context, config: Config) {
       reversePath: config.reversePath,
     }, (msg) => logInfo(msg))
 
-    // 注册 API：返回配置信息
     ctx.console.addListener('chat-onebot/get-config' as any, async () => {
       return {
         mode: config.mode
       }
     })
 
-    // 本地模式：挂载本地文件到 /chat-onebot/local 和 /chat-onebot（用于资源文件）
     const localPath = path.resolve(__dirname, '..', 'Stapxs-QQ-Lite/dist')
     if (existsSync(localPath)) {
-      // 处理静态文件的函数
       const handleStaticFile = async (koaCtx: any, params0: string) => {
         let requestPath = koaCtx.params[0] || '/'
 
-        // 移除开头的斜杠（如果有）
         if (requestPath.startsWith('/')) {
           requestPath = requestPath.substring(1)
         }
 
-        // 如果是根路径，使用 index.html
         const filePath = requestPath === '' || requestPath === '/' ? 'index.html' : requestPath
         const fullPath = path.join(localPath, filePath)
 
         logInfo('本地模式 - 原始路径:', koaCtx.params[0], '处理后:', filePath, '完整路径:', fullPath)
 
         try {
-          // 检查文件是否存在
           const fileExists = existsSync(fullPath)
           const isFile = fileExists && require('fs').statSync(fullPath).isFile()
 
           logInfo('文件检查:', { exists: fileExists, isFile: isFile })
 
           if (isFile) {
-            // 在 koa-send 之前设置正确的 MIME 类型
             if (filePath.endsWith('.js') || filePath.endsWith('.mjs')) {
               koaCtx.type = 'application/javascript; charset=utf-8'
             } else if (filePath.endsWith('.css')) {
@@ -151,7 +155,6 @@ export function apply(ctx: Context, config: Config) {
 
             await require('koa-send')(koaCtx, filePath, { root: localPath })
           } else {
-            // 文件不存在，返回 index.html（支持 SPA 路由）
             logInfo('文件不存在，返回 index.html')
             koaCtx.type = 'text/html; charset=utf-8'
             await require('koa-send')(koaCtx, 'index.html', { root: localPath })
@@ -163,12 +166,10 @@ export function apply(ctx: Context, config: Config) {
         }
       }
 
-      // 主路由：/chat-onebot/local
       ctx.server.get('/chat-onebot/local(/.*)?', async (koaCtx) => {
         await handleStaticFile(koaCtx, koaCtx.params[0])
       })
 
-      // 额外路由：/chat-onebot（用于处理 HTML 中的相对路径资源）
       ctx.server.get('/chat-onebot(/(?!local).+)', async (koaCtx) => {
         await handleStaticFile(koaCtx, koaCtx.params[0])
       })
@@ -180,11 +181,12 @@ export function apply(ctx: Context, config: Config) {
       logger.warn('下载地址: https://github.com/Stapxs/Stapxs-QQ-Lite-2.0/releases/download/v3.3.3/Stapxs.QQ.Lite-3.3.3-web.zip')
     }
 
-    // 注册控制台入口
-    ctx.console.addEntry({
-      dev: path.resolve(__dirname, '../client/index.ts'),
-      prod: path.resolve(__dirname, '../dist'),
-    })
+    if (config.enableWebUI) {
+      ctx.console.addEntry({
+        dev: path.resolve(__dirname, '../client/index.ts'),
+        prod: path.resolve(__dirname, '../dist'),
+      })
+    }
 
     logInfo('chat-onebot 已启动')
     logInfo('当前模式:', config.mode === 'online' ? '在线模式' : '本地模式')
