@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs'
 import { setupWsBridge } from './ws-bridge'
 
 export const name = 'chat-onebot'
-export const reusable = false
+export const reusable = true
 export const filter = false
 
 export const inject = {
@@ -41,22 +41,24 @@ declare module 'koishi' {
   }
 }
 export interface Config {
+  basePath: string
   enableWebUI: boolean
   mode: 'online' | 'local'
   wsMode: 'none' | 'forward' | 'reverse'
   protocolEndpoint?: string
   protocolToken?: string
-  proxyPath?: string
-  reversePath?: string
   accessToken?: string
   loggerinfo: boolean
 }
 
 export const Config: Schema<Config> = Schema.intersect([
   Schema.object({
-    enableWebUI: Schema.boolean().default(true).description('Web UI 入口开关'),
+    basePath: Schema.string().default('/chat-onebot').description('挂载路径'),
+  }).description('挂载路径配置'),
 
-  }).description('基础配置'),
+  Schema.object({
+    enableWebUI: Schema.boolean().default(true).description('Web UI 入口开关'),
+  }).description('侧边栏入口配置'),
   Schema.union([
     Schema.object({
       enableWebUI: Schema.const(true),
@@ -75,8 +77,8 @@ export const Config: Schema<Config> = Schema.intersect([
       Schema.const('none').description('不进行任何转换'),
       Schema.const('forward').description('把正向转为反向'),
       Schema.const('reverse').description('把反向转为正向'),
-    ]).default('none').description('WS桥接模式'),
-  }).description('websocket转换配置'),
+    ]).default('none').description('WS桥接模式<br>开启后 请查看日志提示'),
+  }).description('WS桥接配置'),
   Schema.union([
     Schema.object({
       wsMode: Schema.const('none' as const).description('不进行任何转换'),
@@ -85,13 +87,10 @@ export const Config: Schema<Config> = Schema.intersect([
       wsMode: Schema.const('forward' as const).required().description('把正向转为反向（我们主动连接协议端，WebQQ 连接我们）'),
       protocolEndpoint: Schema.string().required().description('协议端 WebSocket 地址（如 ws://127.0.0.1:3001）'),
       protocolToken: Schema.string().role('secret').description('连接协议端时携带的 token（留空则不鉴权）'),
-      proxyPath: Schema.string().default('/chat-onebot/ws-proxy').description('WebQQ 连接我们的代理路径'),
       accessToken: Schema.string().role('secret').description('WebQQ 连接我们时需要提供的 token（留空则不鉴权）'),
     }),
     Schema.object({
       wsMode: Schema.const('reverse' as const).required().description('把反向转为正向（协议端连接我们，WebQQ 也连接我们）'),
-      reversePath: Schema.string().default('/chat-onebot/ws-incoming').description('协议端反向 WS 连接我们的路径<br>请填入到协议端的 WS 地址中'),
-      proxyPath: Schema.string().default('/chat-onebot/ws-proxy').description('WebQQ 连接我们的代理路径<br>[请填入到这个页面](/chat-onebot)'),
       accessToken: Schema.string().role('secret').description('协议端和 WebQQ 连接我们时需要提供的 token（留空则不鉴权）'),
     }),
   ]),
@@ -111,13 +110,15 @@ export function apply(ctx: Context, config: Config) {
   }
 
   ctx.on("ready", async () => {
+    const proxyPath = config.basePath + '/ws-proxy'
+    const reversePath = config.basePath + '/ws-incoming'
 
     setupWsBridge(ctx, {
       wsMode: config.wsMode,
       protocolEndpoint: config.protocolEndpoint,
       protocolToken: config.protocolToken,
-      proxyPath: config.proxyPath,
-      reversePath: config.reversePath,
+      proxyPath,
+      reversePath,
       accessToken: config.accessToken,
     }, (msg) => logInfo(msg))
 
@@ -173,11 +174,11 @@ export function apply(ctx: Context, config: Config) {
         }
       }
 
-      ctx.server.get('/chat-onebot/local(/.*)?', async (koaCtx) => {
+      ctx.server.get(`${config.basePath}/local(/.*)?`, async (koaCtx) => {
         await handleStaticFile(koaCtx, koaCtx.params[0])
       })
 
-      ctx.server.get('/chat-onebot(/(?!local).+)', async (koaCtx) => {
+      ctx.server.get(`${config.basePath}(/(?!local).+)`, async (koaCtx) => {
         await handleStaticFile(koaCtx, koaCtx.params[0])
       })
 
@@ -185,7 +186,7 @@ export function apply(ctx: Context, config: Config) {
     } else {
       logger.warn(`本地文件路径不存在: ${localPath}`)
       logger.warn('本地模式不可用，请下载 Stapxs QQ Lite 并解压到指定目录')
-      logger.warn('下载地址: https://github.com/Stapxs/Stapxs-QQ-Lite-2.0/releases/download/v3.3.3/Stapxs.QQ.Lite-3.3.3-web.zip')
+      logger.warn('下载地址: https://github.com/Stapxs/Stapxs-QQ-Lite-2.0/releases/download/v3.3.5/Stapxs.QQ.Lite-3.3.5-web.zip')
     }
 
     if (config.enableWebUI) {
@@ -194,9 +195,5 @@ export function apply(ctx: Context, config: Config) {
         prod: path.resolve(__dirname, '../dist'),
       })
     }
-
-    logInfo('chat-onebot 已启动')
-    logInfo('当前模式:', config.mode === 'online' ? '在线模式' : '本地模式')
-    logInfo('访问地址: /chat-onebot')
   })
 }
