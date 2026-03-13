@@ -39,13 +39,91 @@ export function apply(ctx: Context) {
   //   ctx.logger.info('added', session)
   // })
 
-  command
-    .subcommand('.历史记录')
-    .action(async ({ session }, id) => {
-      const aaa = await session.bot.internal.getFriendMsgHistory(session.userId)
-      ctx.logger.info(aaa)
-      return
+  const cmd = ctx.command('room', 'PBHH 聊天室测试')
+  // 加入房间（建立持久 WS，开始接收消息）
+  cmd.subcommand('.join <roomId:number>', '加入聊天室')
+    .example('room.join 6')
+    .action(async ({ session }, roomId) => {
+      if (!roomId) return '请输入房间 ID'
+      const bot = session.bot.internal
+      bot.joinRoom(roomId)
+      return `已发起加入房间 ${roomId}，等待 WS 连接建立…`
     })
+  // 离开房间（断开 WS）
+  cmd.subcommand('.leave <roomId:number>', '离开聊天室')
+    .example('room.leave 6')
+    .action(async ({ session }, roomId) => {
+      if (!roomId) return '请输入房间 ID'
+      const bot = session.bot.internal
+      bot.leaveRoom(roomId)
+      return `已离开房间 ${roomId}`
+    })
+
+  // // 切换房间（离开旧的，加入新的）
+  // cmd.subcommand('.switch <fromId:number> <toId:number>', '切换聊天室')
+  //   .example('room.switch 1 6')
+  //   .action(async ({ session }, fromId, toId) => {
+  //     if (!toId) return '请输入要切换到的房间 ID'
+  //     const bot = session.bot.internal
+  //     if (fromId) {
+  //       bot.leaveRoom(fromId)
+  //     }
+  //     bot.joinRoom(toId)
+  //     return fromId
+  //       ? `已从房间 ${fromId} 切换到房间 ${toId}`
+  //       : `已加入房间 ${toId}`
+  //   })
+
+  // 列出所有房间
+  cmd.subcommand('.list', '列出所有聊天室')
+    .action(async ({ session }) => {
+      const list = await session.bot.getGuildList()
+      const rooms = list.data.filter((g) => g.id.startsWith('room:'))
+      if (!rooms.length) return '暂无聊天室'
+      return rooms.map((r) => `[${r.id}] ${r.name}`).join('\n')
+    })
+
+  // 查看某个房间的历史消息（最近 10 条）
+  cmd.subcommand('.history <roomId:number>', '查看聊天室历史消息')
+    .example('room.history 6')
+    .action(async ({ session }, roomId) => {
+      if (!roomId) return '请输入房间 ID'
+      const list = await session.bot.getMessageList(`room:${roomId}`)
+      if (!list.data.length) return '暂无历史消息'
+      const lines = list.data.slice(-10).map((m) => {
+        const who = m.user?.name ?? m.user?.id ?? '?'
+        return `[${who}] ${m.content}`
+      })
+      return lines.join('\n')
+    })
+
+  // 创建新聊天室
+  cmd.subcommand('.create <name:text>', '创建聊天室')
+    .example('room.create 新房间')
+    .action(async ({ session }, name) => {
+      if (!name) return '请输入房间名称'
+      const bot = session.bot.internal
+      const room = await bot.createRoom(name)
+      return `已创建聊天室：ID=${room.id}  名称=${room.name}  创建者=${room.createdBy}`
+    })
+
+  // 向指定房间发消息（无需加入）
+  cmd.subcommand('.send <roomId:number> <content:text>', '向聊天室发送消息（无需加入）')
+    .example('room.send 6 你好')
+    .action(async ({ session }, roomId, content) => {
+      if (!roomId || !content) return '请输入房间 ID 和消息内容'
+      const bot = session.bot.internal
+      await bot.sendRoomMessage(roomId, content)
+      return `已向房间 ${roomId} 发送：${content}`
+    })
+
+  // command
+  //   .subcommand('.历史记录')
+  //   .action(async ({ session }, id) => {
+  //     const aaa = await session.bot.internal.getFriendMsgHistory(session.userId)
+  //     ctx.logger.info(aaa)
+  //     return
+  //   })
 
   ctx.command('test-timeout', '测试页面渲染超时')
     .action(async ({ session }) => {
