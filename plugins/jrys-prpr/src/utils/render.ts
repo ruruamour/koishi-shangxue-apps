@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-import { URL, pathToFileURL, fileURLToPath } from 'node:url'
+import { fileURLToPath } from 'node:url'
 import type { Context, Session } from 'koishi'
 import type { Config, JrysData } from '../types'
 import { getFontDataUrl } from './font'
@@ -16,7 +16,6 @@ export async function generateFortuneHTML(
   BackgroundURL_base64: string,
   logInfo: (...args: any[]) => void
 ): Promise<string> {
-  // 获取字体 Data URL
   const { fontDataUrl, selectedFont } = await getFontDataUrl(ctx, config, logInfo)
 
   let insertHTMLuseravatar = session.event.user.avatar
@@ -56,7 +55,7 @@ color: transparent;
 <style>
 ${fontDataUrl ? `@font-face {
 font-family: "${selectedFont}";
-src: url('${fontDataUrl}') format('truetype');
+src: url('${fontDataUrl}');
 }` : ''}
 body, html {
 height: 100%;
@@ -113,11 +112,11 @@ flex-direction: column;
 align-items: center;
 position: relative;
 width: 100%;
-justify-content: center; /* 居中 */
-margin-top: 0px; /* 上边距 */
+justify-content: center;
+margin-top: 0px;
 }
 .fortune-info1 > * {
-margin: 10px; /* 元素之间的间距 */
+margin: 10px;
 }
 .fortune-info2 {
 color: ${config.HTML_setting.HoroscopeDescriptionTextColor};
@@ -201,20 +200,17 @@ ${dJson.unsignText}
  * 获取图片 Buffer（用于 raw_jrys 模式）
  */
 export async function getImageBuffer(ctx: Context, rawUrl: string): Promise<Buffer> {
-  // 首先检查是否为 data URL
   if (rawUrl.startsWith('data:image/')) {
     const base64Data = rawUrl.split(',')[1]
     return Buffer.from(base64Data, 'base64')
   }
 
-  // 检查是否为网络 URL
   if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
     const response = await ctx.http.get(rawUrl, { responseType: 'arraybuffer' })
     return Buffer.from(response)
   }
 
-  // 否则，视为本地路径（可能是 file:/// URL 或普通文件系统路径）
-  let localPath: string;
+  let localPath: string
   if (rawUrl.startsWith('file:///')) {
     try {
       localPath = fileURLToPath(rawUrl)
