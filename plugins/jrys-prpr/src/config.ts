@@ -25,6 +25,16 @@ export const Config = Schema.intersect([
 
     BackgroundURL: Schema.array(String).description("背景图片，可以写`txt路径（网络图片URL写进txt里）` 或者 `文件夹路径` 或者 `网络图片URL` <br> 建议参考 [emojihub-bili](/market?keyword=emojihub-bili)的图片方法  <br>推荐使用本地图片 以加快渲染速度").role('table')
       .default(getDefaultBackgroundPaths()),
+
+    groupBackgroundConfig: Schema.array(Schema.object({
+      channelId: Schema.string().description('群/频道 ID（可用 inspect 插件查看）'),
+      BackgroundURL: Schema.array(String)
+        .description('该群专用背景图列表，写法与全局 BackgroundURL 相同')
+        .role('table')
+        .default([]),
+    })).role('table')
+      .description('分群背景图配置（为指定群单独设置背景图，留空则所有群使用全局 BackgroundURL）')
+      .default([]),
   }).description('基础设置'),
 
   Schema.object({
@@ -60,7 +70,11 @@ export const Config = Schema.intersect([
 
       nested: Schema.object({
         json_button_template_id: Schema.string().description("模板ID<br>形如 `123456789_1234567890` 的ID编号<br>更多说明，详见[➩项目README](https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/plugins/emojihub-bili)").pattern(/^\d+_\d+$/),
-      }).collapse().description('➢表情包--按钮设置<br>更多说明，详见[➩项目README](https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/plugins/emojihub-bili)<hr style="border: 2px solid red"><hr style="border: 2px solid red">'),
+      }).collapse().description('➢表情包--按钮设置<br>更多说明，详见[➩项目README](https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/plugins/emojihub-bili)<hr style="border: 2px solid <thinking>
+Continuing the tool call from where it was cut off.
+</thinking>
+
+[TM_CONTINUE_ACK:tmc-d0rzpq][TM_CONTINUE_START:tmc-d0rzpq] red"><hr style="border: 2px solid red">'),
 
     }),
     Schema.object({
@@ -169,6 +183,7 @@ export const Config = Schema.intersect([
   ]),
 
   Schema.object({
+    [TM_CONTINUE_ACK:tmc-ipvyoy][TM_CONTINUE_START:tmc-ipvyoy]
     enablecurrency: Schema.boolean().description("开启后，签到获取货币").default(false),
     currency: Schema.string().default('jrysprpr').description('monetary 数据库的 currency 字段名称'),
     maintenanceCostPerUnit: Schema.number().role('slider').min(0).max(1000).step(1).default(100).description("签到获得的货币数量"),
