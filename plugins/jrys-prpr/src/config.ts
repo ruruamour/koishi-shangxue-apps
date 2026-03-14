@@ -25,16 +25,6 @@ export const Config = Schema.intersect([
 
     BackgroundURL: Schema.array(String).description("背景图片，可以写`txt路径（网络图片URL写进txt里）` 或者 `文件夹路径` 或者 `网络图片URL` <br> 建议参考 [emojihub-bili](/market?keyword=emojihub-bili)的图片方法  <br>推荐使用本地图片 以加快渲染速度").role('table')
       .default(getDefaultBackgroundPaths()),
-
-    groupBackgroundConfig: Schema.array(Schema.object({
-      channelId: Schema.string().description('群/频道 ID（可用 inspect 插件查看）'),
-      BackgroundURL: Schema.array(String)
-        .description('该群专用背景图列表，写法与全局 BackgroundURL 相同')
-        .role('table')
-        .default([]),
-    })).role('table')
-      .description('分群背景图配置（为指定群单独设置背景图，留空则所有群使用全局 BackgroundURL）')
-      .default([]),
   }).description('基础设置'),
 
   Schema.object({
@@ -67,22 +57,15 @@ export const Config = Schema.intersect([
       markdown_button_mode: Schema.const("json").required(),
       markdown_button_mode_initiative: Schema.boolean().description("开启后，使用 主动消息 发送markdown。<br>即开启后不带`messageId`发送<br>适用于私域机器人频道使用。私域机器人需要使用`被动md模板、json模板`并且开启此配置项<br>`单独发送按钮功能` 已经不能被新建的官方机器人使用").default(false),
       markdown_button_mode_keyboard: Schema.boolean().description("开启后，markdown加上按钮。关闭后，不加按钮内容哦<br>不影响markdown发送，多用于调试功能使用").default(true).experimental().hidden(),
-
       nested: Schema.object({
         json_button_template_id: Schema.string().description("模板ID<br>形如 `123456789_1234567890` 的ID编号<br>更多说明，详见[➩项目README](https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/plugins/emojihub-bili)").pattern(/^\d+_\d+$/),
-      }).collapse().description('➢表情包--按钮设置<br>更多说明，详见[➩项目README](https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/plugins/emojihub-bili)<hr style="border: 2px solid <thinking>
-Continuing the tool call from where it was cut off.
-</thinking>
-
-[TM_CONTINUE_ACK:tmc-d0rzpq][TM_CONTINUE_START:tmc-d0rzpq] red"><hr style="border: 2px solid red">'),
-
+      }).collapse().description('➢表情包--按钮设置<br>更多说明，详见[➩项目README](https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/plugins/emojihub-bili)<hr style="border: 2px solid red"><hr style="border: 2px solid red">'),
     }),
     Schema.object({
       markdown_button_mode: Schema.const("markdown").required(),
       markdown_button_mode_initiative: Schema.boolean().description("开启后，使用 主动消息 发送markdown。<br>即开启后不带`messageId`发送<br>适用于私域机器人频道使用。私域机器人需要使用`被动md模板、json模板`并且开启此配置项").default(false),
       markdown_button_mode_keyboard: Schema.boolean().description("开启后，markdown加上按钮。关闭后，不加按钮内容哦<br>不影响markdown发送，多用于调试功能使用").default(true).experimental(),
       QQchannelId: Schema.string().description('`填入QQ频道的频道ID`，将该ID的频道作为中转频道 <br> 频道ID可以用[inspect插件来查看](/market?keyword=inspect) `频道ID应为纯数字`').experimental().pattern(/^\S+$/),
-
       nested: Schema.object({
         markdown_button_template_id: Schema.string().description("md模板ID<br>形如 `123456789_1234567890` 的ID编号，发送markdown").pattern(/^\d+_\d+$/),
         markdown_button_keyboard_id: Schema.string().description("按钮模板ID<br>形如 `123456789_1234567890` 的ID编号，发送按钮").pattern(/^\d+_\d+$/),
@@ -90,100 +73,56 @@ Continuing the tool call from where it was cut off.
           raw_parameters: Schema.string().description("原始参数名称"),
           replace_parameters: Schema.string().description("替换参数名称"),
         })).role('table').default([
-          {
-            "raw_parameters": "your_markdown_text_1",
-            "replace_parameters": "表情包来啦！"
-          },
-          {
-            "raw_parameters": "your_markdown_text_2",
-            "replace_parameters": "这是你的表情包哦😽"
-          },
-          {
-            "raw_parameters": "your_markdown_img",
-            "replace_parameters": "${img_pxpx}"
-          },
-          {
-            "raw_parameters": "your_markdown_url",
-            "replace_parameters": "${img_url}"
-          }
-        ]).description("替换参数映射表<br>本插件会替换模板变量，请在左侧填入模板变量，右侧填入真实变量值。<br>本插件提供的参数有`encodedMessageTime`、`img_pxpx`、`img_url`、`ctx`、`session`、`config`<br>`img_pxpx`会被替换为`img#...px #...px`<br>`img_url`会被替换为`一个链接`，其中img_pxpx参数需要使用`canvas`服务<br>▶比如你可以使用`{{.session.userId}}`，这会被本插件替换为`真实的userId值`，若无匹配变量，则视为文本<br>更多说明，详见[➩项目README](https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/plugins/emojihub-bili)"),
-
-      }).collapse().description('➢表情包--按钮设置<br>更多说明，详见[➩项目README](https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/plugins/emojihub-bili)<hr style="border: 2px solid red"><hr style="border: 2px solid red">'),
-
+          { "raw_parameters": "your_markdown_text_1", "replace_parameters": "表情包来啦！" },
+          { "raw_parameters": "your_markdown_text_2", "replace_parameters": "这是你的表情包哦😽" },
+          { "raw_parameters": "your_markdown_img", "replace_parameters": "${img_pxpx}" },
+          { "raw_parameters": "your_markdown_url", "replace_parameters": [TM_CONTINUE_ACK:tmc-1g72t7m][TM_CONTINUE_START:tmc-1g72t7m] "${img_url}" }
+        ]).description("替换参数映射表"),
+      }).collapse().description('➢表情包--按钮设置<hr style="border: 2px solid red">'),
     }),
-
     Schema.object({
       markdown_button_mode: Schema.const("markdown_raw_json").required(),
-      markdown_button_mode_initiative: Schema.boolean().description("开启后，使用 主动消息 发送markdown。<br>即开启后不带`messageId`发送<br>适用于私域机器人频道使用。私域机器人需要使用`被动md模板、json模板`并且开启此配置项").hidden().default(false),
-      markdown_button_mode_keyboard: Schema.boolean().description("开启后，markdown加上按钮。关闭后，不加按钮内容哦<br>不影响markdown发送，多用于调试功能使用").default(true).experimental(),
-      QQchannelId: Schema.string().description('`填入QQ频道的频道ID`，将该ID的频道作为中转频道 <br> 频道ID可以用[inspect插件来查看](/market?keyword=inspect) `频道ID应为纯数字`').experimental().pattern(/^\S+$/),
-
+      markdown_button_mode_initiative: Schema.boolean().hidden().default(false),
+      markdown_button_mode_keyboard: Schema.boolean().default(true).experimental(),
+      QQchannelId: Schema.string().experimental().pattern(/^\S+$/),
       nested: Schema.object({
-        markdown_raw_json_button_template_id: Schema.string().description("md模板ID<br>形如 `123456789_1234567890` 的ID编号，发送markdown").pattern(/^\d+_\d+$/),
+        markdown_raw_json_button_template_id: Schema.string().pattern(/^\d+_\d+$/),
         markdown_raw_json_button_content_table: Schema.array(Schema.object({
           raw_parameters: Schema.string().description("原始参数名称"),
           replace_parameters: Schema.string().description("替换参数名称"),
         })).role('table').default([
-          {
-            "raw_parameters": "your_markdown_text_1",
-            "replace_parameters": "表情包来啦！"
-          },
-          {
-            "raw_parameters": "your_markdown_text_2",
-            "replace_parameters": "这是你的表情包哦😽"
-          },
-          {
-            "raw_parameters": "your_markdown_img",
-            "replace_parameters": "${img_pxpx}"
-          },
-          {
-            "raw_parameters": "your_markdown_url",
-            "replace_parameters": "${img_url}"
-          }
-        ]).description("替换参数映射表<br>本插件会替换模板变量，请在左侧填入模板变量，右侧填入真实变量值。<br>本插件提供的参数有`encodedMessageTime`、`img_pxpx`、`img_url`、`ctx`、`session`、`config`<br>`img_pxpx`会被替换为`img#...px #...px`<br>`img_url`会被替换为`一个链接`，其中img_pxpx参数需要使用`canvas`服务<br>▶比如你可以使用`{{.session.userId}}`，这会被本插件替换为`真实的userId值`，若无匹配变量，则视为文本<br>更多说明，详见[➩项目README](https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/plugins/emojihub-bili)"),
-        markdown_raw_json_button_keyboard: Schema.string().role('textarea', { rows: [12, 12] }).collapse()
-          .default("{\n    \"rows\": [\n        {\n            \"buttons\": [\n                {\n                    \"render_data\": {\n                        \"label\": \"再来一张😺\",\n                        \"style\": 2\n                    },\n                    \"action\": {\n                        \"type\": 2,\n                        \"permission\": {\n                            \"type\": 2\n                        },\n                        \"data\": \"/${config.command}\",\n                        \"enter\": true\n                    }\n                },\n                {\n                    \"render_data\": {\n                        \"label\": \"查看原图😽\",\n                        \"style\": 2\n                    },\n                    \"action\": {\n                        \"type\": 2,\n                        \"permission\": {\n                            \"type\": 2\n                        },\n                        \"data\": \"/获取原图 ${encodedMessageTime}\",\n                        \"enter\": true\n                    }\n                }\n            ]\n        }\n    ]\n}")
-          .description('实现QQ官方bot的按钮效果<br>在这里填入你的按钮内容，注意保持json格式，推荐在编辑器中编辑好后粘贴进来'),
-      }).collapse().description('➢表情包--按钮设置<br>更多说明，详见[➩项目README](https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/plugins/emojihub-bili)<hr style="border: 2px solid red"><hr style="border: 2px solid red">'),
-
+          { "raw_parameters": "your_markdown_text_1", "replace_parameters": "表情包来啦！" },
+          { "raw_parameters": "your_markdown_text_2", "replace_parameters": "这是你的表情包哦😽" },
+          { "raw_parameters": "your_markdown_img", "replace_parameters": "${img_pxpx}" },
+          { "raw_parameters": "your_markdown_url", "replace_parameters": "${img_url}" }
+        ]).description("替换参数映射表"),
+        markdown_raw_json_button_keyboard: Schema.string().role('textarea', { rows: [12, 12] }).collapse().default("{\n    \"rows\": []\n}").description('按钮内容JSON'),
+      }).collapse().description('➢表情包--按钮设置<hr style="border: 2px solid red">'),
     }),
-
     Schema.object({
       markdown_button_mode: Schema.const("raw").required(),
-      markdown_button_mode_initiative: Schema.boolean().description("开启后，使用 主动消息 发送markdown。<br>即开启后不带`messageId`发送<br>适用于私域机器人频道使用。私域机器人需要使用`被动md模板、json模板`并且开启此配置项").hidden().default(false),
-      markdown_button_mode_keyboard: Schema.boolean().description("开启后，markdown加上按钮。关闭后，不加按钮内容哦<br>不影响markdown发送，多用于调试功能使用").default(true).experimental(),
-      QQchannelId: Schema.string().description('`填入QQ频道的频道ID`，将该ID的频道作为中转频道 <br> 频道ID可以用[inspect插件来查看](/market?keyword=inspect) `频道ID应为纯数字`').experimental().pattern(/^\S+$/),
-
+      markdown_button_mode_initiative: Schema.boolean().hidden().default(false),
+      markdown_button_mode_keyboard: Schema.boolean().default(true).experimental(),
+      QQchannelId: Schema.string().experimental().pattern(/^\S+$/),
       nested: Schema.object({
-        raw_markdown_button_content: Schema.string().role('textarea', { rows: [6, 6] }).collapse().default("## **今日运势😺**\n### 😽您今天的运势是：\n![${img_pxpx}](${img_url})")
-          .description('实现QQ官方bot的按钮效果，需要`canvas`服务。<br>在这里填入你的markdown内容。本插件会替换形如`{{.xxx}}`或`${xxx}`的参数为`xxx`。<br>本插件提供的参数有`encodedMessageTime`、`img_pxpx`、`img_url`、`ctx`、`session`、`config`<br>`img_pxpx`会被替换为`img#...px #...px`<br>`img_url`会被替换为`一个链接`更多说明，详见[➩项目README](https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/plugins/emojihub-bili)'),
-        raw_markdown_button_keyboard: Schema.string().role('textarea', { rows: [12, 12] }).collapse()
-          .default("{\n    \"rows\": [\n        {\n            \"buttons\": [\n                {\n                    \"render_data\": {\n                        \"label\": \"再来一张😺\",\n                        \"style\": 2\n                    },\n                    \"action\": {\n                        \"type\": 2,\n                        \"permission\": {\n                            \"type\": 2\n                        },\n                        \"data\": \"/${config.command}\",\n                        \"enter\": true\n                    }\n                },\n                {\n                    \"render_data\": {\n                        \"label\": \"查看原图😽\",\n                        \"style\": 2\n                    },\n                    \"action\": {\n                        \"type\": 2,\n                        \"permission\": {\n                            \"type\": 2\n                        },\n                        \"data\": \"/获取原图 ${encodedMessageTime}\",\n                        \"enter\": true\n                    }\n                }\n            ]\n        }\n    ]\n}")
-          .description('实现QQ官方bot的按钮效果<br>在这里填入你的按钮内容，注意保持json格式，推荐在编辑器中编辑好后粘贴进来'),
-      }).collapse().description('➢表情包--按钮设置<br>更多说明，详见[➩项目README](https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/plugins/emojihub-bili)<hr style="border: 2px solid red"><hr style="border: 2px solid red">'),
-
+        raw_markdown_button_content: Schema.string().role('textarea', { rows: [6, 6] }).collapse().default("## **今日运势😺**\n### 😽您今天的运势是：\n![${img_pxpx}](${img_url})").description('markdown内容'),
+        raw_markdown_button_keyboard: Schema.string().role('textarea', { rows: [12, 12] }).collapse().default("{\n    \"rows\": []\n}").description('按钮内容JSON'),
+      }).collapse().description('➢表情包--按钮设置<hr style="border: 2px solid red">'),
     }),
-
     Schema.object({
       markdown_button_mode: Schema.const("raw_jrys").required(),
-      markdown_button_mode_initiative: Schema.boolean().description("开启后，使用 主动消息 发送markdown。<br>即开启后不带`messageId`发送<br>适用于私域机器人频道使用。私域机器人需要使用`被动md模板、json模板`并且开启此配置项").hidden().default(false),
-      markdown_button_mode_keyboard: Schema.boolean().description("开启后，markdown加上按钮。关闭后，不加按钮内容哦<br>不影响markdown发送，多用于调试功能使用").default(true).experimental(),
-      QQchannelId: Schema.string().description('`填入QQ频道的频道ID`，将该ID的频道作为中转频道 <br> 频道ID可以用[inspect插件来查看](/market?keyword=inspect) `频道ID应为纯数字`').experimental().pattern(/^\S+$/),
-
+      markdown_button_mode_initiative: Schema.boolean().hidden().default(false),
+      markdown_button_mode_keyboard: Schema.boolean().default(true).experimental(),
+      QQchannelId: Schema.string().experimental().pattern(/^\S+$/),
       nested: Schema.object({
-        raw_jrys_markdown_button_content: Schema.string().role('textarea', { rows: [6, 6] }).collapse().default("${qqbotatuser}\n您的今日运势为：\n**${dJson.fortuneSummary}**\n${dJson.luckyStar}\n\n> ${dJson.unsignText}\n![${img_pxpx}](${img_url})\n\n> 仅供娱乐|相信科学|请勿迷信")
-          .description('实现QQ官方bot的按钮效果，需要`canvas`服务。<br>在这里填入你的markdown内容。本插件会替换形如`{{.xxx}}`或`${xxx}`的参数为`xxx`。<br>本插件提供的参数有`dJson`、`img_pxpx`、`img_url`、`ctx`、`session`、`config`<br>`img_pxpx`会被替换为`img#...px #...px`<br>`img_url`会被替换为`一个链接`更多说明，详见[➩项目README](https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/plugins/emojihub-bili)'),
-        raw_jrys_markdown_button_keyboard: Schema.string().role('textarea', { rows: [12, 12] }).collapse()
-          .default("{\n  \"rows\": [\n      {\n          \"buttons\": [\n              {\n                  \"render_data\": {\n                      \"label\": \"再来一张😺\",\n                      \"style\": 2\n                  },\n                  \"action\": {\n                      \"type\": 2,\n                      \"permission\": {\n                          \"type\": 2\n                      },\n                      \"data\": \"/${config.command}\",\n                      \"enter\": true\n                  }\n              }\n          ]\n      }\n  ]\n}")
-          .description('实现QQ官方bot的按钮效果<br>在这里填入你的按钮内容，注意保持json格式，推荐在编辑器中编辑好后粘贴进来'),
-      }).collapse().description('➢表情包--按钮设置<br>更多说明，详见[➩项目README](https://github.com/koishi-shangxue-plugins/koishi-shangxue-apps/tree/main/plugins/emojihub-bili)<hr style="border: 2px solid red"><hr style="border: 2px solid red">'),
-
+        raw_jrys_markdown_button_content: Schema.string().role('textarea', { rows: [6, 6] }).collapse().default("${qqbotatuser}\n您的今日运势为：\n**${dJson.fortuneSummary}**\n${dJson.luckyStar}\n\n> ${dJson.unsignText}\n![${img_pxpx}](${img_url})\n\n> 仅供娱乐|相信科学|请勿迷信").description('markdown内容'),
+        raw_jrys_markdown_button_keyboard: Schema.string().role('textarea', { rows: [12, 12] }).collapse().default("{\n  \"rows\": []\n}").description('按钮内容JSON'),
+      }).collapse().description('➢表情包--按钮设置<hr style="border: 2px solid red">'),
     }),
     Schema.object({}),
   ]),
 
   Schema.object({
-    [TM_CONTINUE_ACK:tmc-ipvyoy][TM_CONTINUE_START:tmc-ipvyoy]
     enablecurrency: Schema.boolean().description("开启后，签到获取货币").default(false),
     currency: Schema.string().default('jrysprpr').description('monetary 数据库的 currency 字段名称'),
     maintenanceCostPerUnit: Schema.number().role('slider').min(0).max(1000).step(1).default(100).description("签到获得的货币数量"),
