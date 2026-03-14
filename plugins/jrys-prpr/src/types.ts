@@ -28,6 +28,12 @@ export interface FortuneProbability {
   Probability: number
 }
 
+// 分群背景图配置
+export interface GroupBackgroundConfig {
+  channelId: string
+  BackgroundURL: string[]
+}
+
 // 插件配置类型
 export interface Config {
   command: string
@@ -39,6 +45,7 @@ export interface Config {
   GetOriginalImage_Command_HintText: '1' | '2' | '3'
   FortuneProbabilityAdjustmentTable: FortuneProbability[]
   BackgroundURL: string[]
+  groupBackgroundConfig?: GroupBackgroundConfig[]
   screenshotquality: number
   HTML_setting: {
     UserNameColor: string
