@@ -15,14 +15,6 @@ export function getRandomBackground(config: Pick<Config, 'BackgroundURL'>): stri
   }
 }
 
-export function getBackgroundForChannel(config: Config, channelId: string): string {
-  const groupUrls = config.groupBackgroundConfig?.[channelId]
-  if (groupUrls && groupUrls.length > 0) {
-    return getRandomBackground({ BackgroundURL: groupUrls })
-  }
-  return getRandomBackground(config)
-}
-
 function handleLocalPath(filePath: string): string {
   let localPath: string
   if (filePath.startsWith('file:///')) {
