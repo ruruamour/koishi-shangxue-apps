@@ -8,6 +8,19 @@ import { generateFortuneHTML, getImageBuffer } from '../utils/render'
 import { sendImageMessage } from '../utils/message-sender'
 
 /**
+ * 根据当前频道获取背景图
+ * 若该群在 groupBackgroundConfig 中有配置且列表非空，则优先使用，否则回退到全局随机背景
+ */
+function getBackgroundForChannel(config: Config, channelId: string): string {
+  const groupCfg = config.groupBackgroundConfig?.find(g => g.channelId === channelId)
+  if (groupCfg && groupCfg.BackgroundURL && groupCfg.BackgroundURL.length > 0) {
+    const urls = groupCfg.BackgroundURL
+    return urls[Math.floor(Math.random() * urls.length)]
+  }
+  return getRandomBackground(config)
+}
+
+/**
  * 注册今日运势主命令
  */
 export function registerJrysCommand(
@@ -24,7 +37,7 @@ export function registerJrysCommand(
       let hasSignedInToday = await alreadySignedInToday(ctx, session.userId, session.channelId, config)
       retryCounts[session.userId] = retryCounts[session.userId] || 0 // 初始化重试次数
       let Checkin_HintText_messageid: any
-      let backgroundImage = getRandomBackground(config)
+      let backgroundImage = getBackgroundForChannel(config, session.channelId)
       let BackgroundURL = backgroundImage.replace(/\\/g, '/')
       let imageBuffer: Buffer
       const dJson = await getJrys(session, config, logInfo)
@@ -50,9 +63,9 @@ ${dJson.unsignText}\n
             enablecurrencymessage = h.text(session.text(".CurrencyGetbackgroundimagesplit", [config.maintenanceCostPerUnit]))
           }
         }
-        let backgroundImage = getRandomBackground(config)
-        let BackgroundURL = backgroundImage.replace(/\\/g, '/')
-        let BackgroundURL_base64 = await convertToBase64image(ctx, BackgroundURL, logInfo)
+        let splitBackground = getBackgroundForChannel(config, session.channelId)
+        let splitBackgroundURL = splitBackground.replace(/\\/g, '/')
+        let BackgroundURL_base64 = await convertToBase64image(ctx, splitBackgroundURL, logInfo)
         let message = [
           h.image(BackgroundURL_base64),
           h.text(textjrys),
